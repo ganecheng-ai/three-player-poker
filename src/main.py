@@ -99,6 +99,8 @@ class DouDizhuGame:
             elif button_name == "Pass" and self.can_player_act():
                 self.rule.pass_turn(0)
                 self.message = "你选择了过牌"
+            elif button_name == "Play" and self.can_player_act():
+                self.play_selected_cards()
             elif button_name == "Call1" and self.rule.phase == GamePhase.CALL_LANDLORD:
                 self.handle_call_score(1)
             elif button_name == "Call2" and self.rule.phase == GamePhase.CALL_LANDLORD:

@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build for ${{ matrix.os }}
@@ -160,7 +163,7 @@ jobs:
             artifacts/three-player-poker-macos.dmg
             artifacts/three-player-poker-windows.zip
             artifacts/checksums.txt
-          file_failure_ignore: true
+          fail_on_unmatched_files: false
           generate_release_notes: true
           draft: false
           prerelease: false

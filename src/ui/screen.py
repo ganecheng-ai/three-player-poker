@@ -47,6 +47,7 @@ class GameScreen:
 
         # 按钮
         self.buttons: Dict[str, pygame.Rect] = {}
+        self.button_text: Dict[str, str] = {}
         self.button_callbacks: Dict[str, Any] = {}
 
         # 选中状态
@@ -64,14 +65,33 @@ class GameScreen:
         pygame.font.init()
 
         # 加载中文字体
-        chinese_font_path = "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc"
-        try:
-            self.chinese_font = pygame.font.Font(chinese_font_path, 36)
-            self.font_large = pygame.font.Font(chinese_font_path, 48)
-            self.font_medium = pygame.font.Font(chinese_font_path, 36)
-            self.font_small = pygame.font.Font(chinese_font_path, 24)
-        except Exception:
-            # 如果加载失败，使用默认字体（中文会显示乱码）
+        chinese_font_paths = [
+            "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc",  # 文泉驿正黑
+            "/usr/share/fonts/wqy-microhei/wqy-microhei.ttc",  # 文泉驿微米黑
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",  # Ubuntu path
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Noto CJK
+            "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+            "/System/Library/Fonts/PingFang.ttc",  # macOS
+            "/System/Library/Fonts/STHeiti Light.ttc",  # macOS
+            "C:\\Windows\\Fonts\\msyh.ttc",  # Windows 微软雅黑
+            "C:\\Windows\\Fonts\\simhei.ttf",  # Windows 黑体
+        ]
+
+        font_loaded = False
+        for font_path in chinese_font_paths:
+            try:
+                self.chinese_font = pygame.font.Font(font_path, 36)
+                self.font_large = pygame.font.Font(font_path, 48)
+                self.font_medium = pygame.font.Font(font_path, 36)
+                self.font_small = pygame.font.Font(font_path, 24)
+                font_loaded = True
+                break
+            except Exception:
+                continue
+
+        if not font_loaded:
+            # 如果没有找到中文字体，使用默认字体
             self.chinese_font = pygame.font.Font(None, 36)
             self.font_large = pygame.font.Font(None, 48)
             self.font_medium = pygame.font.Font(None, 36)
@@ -312,7 +332,6 @@ class GameScreen:
         """创建按钮"""
         rect = pygame.Rect(x, y, width, height)
         self.buttons[name] = rect
-        self.button_text = getattr(self, 'button_text', {})
         self.button_text[name] = text
         if callback:
             self.button_callbacks[name] = callback
@@ -329,7 +348,7 @@ class GameScreen:
             return False
 
         rect = self.buttons[name]
-        text = self.button_text.get(name, name) if hasattr(self, 'button_text') else name
+        text = self.button_text.get(name, name)
 
         # 检查鼠标位置
         mouse_pos = pygame.mouse.get_pos()
