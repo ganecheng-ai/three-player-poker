@@ -62,13 +62,17 @@ class GameScreen:
 
         # 初始化字体
         pygame.font.init()
+
+        # 加载中文字体
+        chinese_font_path = "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc"
         try:
-            # 尝试加载中文字体
+            self.chinese_font = pygame.font.Font(chinese_font_path, 36)
+            self.font_large = pygame.font.Font(chinese_font_path, 48)
+            self.font_medium = pygame.font.Font(chinese_font_path, 36)
+            self.font_small = pygame.font.Font(chinese_font_path, 24)
+        except Exception:
+            # 如果加载失败，使用默认字体（中文会显示乱码）
             self.chinese_font = pygame.font.Font(None, 36)
-            self.font_large = pygame.font.Font(None, 48)
-            self.font_medium = pygame.font.Font(None, 36)
-            self.font_small = pygame.font.Font(None, 24)
-        except:
             self.font_large = pygame.font.Font(None, 48)
             self.font_medium = pygame.font.Font(None, 36)
             self.font_small = pygame.font.Font(None, 24)

@@ -53,6 +53,9 @@ class GameRule:
         if len(player_ids) != 3:
             return False
 
+        # 重置牌堆
+        self.deck = Deck()
+
         self.players = {pid: [] for pid in player_ids}
         self.roles = {pid: PlayerRole.FARMER for pid in player_ids}
         self.landlord_id = None
