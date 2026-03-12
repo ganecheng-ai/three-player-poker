@@ -38,6 +38,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y binutils
 
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install create-dmg || true
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -49,7 +54,12 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile --name three-player-poker --windowed src/main.py
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            # macOS 生成 .app 包
+            pyinstaller --windowed --name "Three Player Poker" src/main.py
+          else
+            pyinstaller --onefile --name three-player-poker --windowed src/main.py
+          fi
         shell: bash
 
       - name: Prepare artifacts
@@ -57,6 +67,8 @@ jobs:
           mkdir -p dist_release
           if [ "$RUNNER_OS" == "Windows" ]; then
             cp dist/three-player-poker.exe dist_release/
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            cp -r "dist/Three Player Poker.app" dist_release/
           else
             cp dist/three-player-poker dist_release/
           fi
@@ -68,9 +80,23 @@ jobs:
           if [ "$RUNNER_OS" == "Linux" ]; then
             tar -czvf ../${{ matrix.output_name }} *
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            tar -czvf ../${{ matrix.output_name }} *
+            # 创建 tar.gz
+            tar -czvf ../${{ matrix.artifact_name }}.tar.gz *
+            # 如果 create-dmg 可用，创建 dmg
+            if command -v create-dmg &> /dev/null; then
+              create-dmg \
+                --volname "Three Player Poker" \
+                --window-pos 200 120 \
+                --window-size 800 400 \
+                --icon-size 100 \
+                --app-drop-link 600 185 \
+                --hide-extension "Three Player Poker.app" \
+                ../${{ matrix.artifact_name }}.dmg \
+                "Three Player Poker.app" || true
+            fi
           elif [ "$RUNNER_OS" == "Windows" ]; then
-            7z a -tzip ../${{ matrix.output_name }} *
+            # Windows 使用 Powershell 压缩
+            powershell -Command "Compress-Archive -Path * -DestinationPath ../${{ matrix.output_name }}"
           fi
         shell: bash
 
@@ -102,8 +128,10 @@ jobs:
             tar -czvf ../three-player-poker-linux.tar.gz *
             cd ..
           fi
-          # macOS
-          if [ -d "three-player-poker-macos" ]; then
+          # macOS - 优先使用 dmg，如果没有则使用 tar.gz
+          if [ -f "three-player-poker-macos.dmg" ]; then
+            cp three-player-poker-macos.dmg three-player-poker-macos.dmg
+          elif [ -d "three-player-poker-macos" ]; then
             cd three-player-poker-macos
             tar -czvf ../three-player-poker-macos.tar.gz *
             cd ..
@@ -111,7 +139,7 @@ jobs:
           # Windows
           if [ -d "three-player-poker-windows" ]; then
             cd three-player-poker-windows
-            zip -r ../three-player-poker-windows.zip *
+            powershell -Command "Compress-Archive -Path * -DestinationPath ../three-player-poker-windows.zip"
             cd ..
           fi
           cd ..
@@ -119,7 +147,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz *.zip 2>/dev/null || true > checksums.txt
+          sha256sum *.tar.gz *.zip *.dmg 2>/dev/null || true > checksums.txt
           cd ..
 
       - name: Create Release
@@ -128,6 +156,7 @@ jobs:
           files: |
             artifacts/three-player-poker-linux.tar.gz
             artifacts/three-player-poker-macos.tar.gz
+            artifacts/three-player-poker-macos.dmg
             artifacts/three-player-poker-windows.zip
             artifacts/checksums.txt
           generate_release_notes: true

@@ -5,7 +5,6 @@ import pygame
 from src.game.deck import Card, Deck, sort_cards
 from src.game.rules import GameRule, GamePhase, PlayerRole
 from src.game.cards import analyze_hand, can_play
-from src.game.state import GameState
 from src.player.human import HumanPlayer
 from src.player.ai import AIPlayer
 from src.ui.screen import GameScreen, COLOR_TEXT

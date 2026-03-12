@@ -1,11 +1,12 @@
 """游戏状态管理"""
-from typing import Dict, List, Optional, Any
-from enum import IntEnum
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import json
 
-from .deck import Card, Deck, Suit, sort_cards
-from .cards import HandType, analyze_hand, can_play
-from .rules import GameRule, GamePhase, PlayerRole
+from .deck import Card, Suit
+
+if TYPE_CHECKING:
+    from .rules import GameRule
+    from .rules import GamePhase, PlayerRole
 
 
 class GameState:
