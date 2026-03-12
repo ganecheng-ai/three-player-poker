@@ -124,6 +124,9 @@ three-player-poker/
 ### v0.5.1 - Bug 修复
 - [x] 修复 Windows 版本启动报错 AttributeError: module 'pygame' has no attribute 'clock'
 
+### v0.5.2 - Bug 修复
+- [x] 修复 Card.SPADES 属性错误 (issue #2)
+
 ### v1.0.0 - 正式发布
 - [x] 多平台构建
 - [x] 正式发布
