@@ -124,32 +124,32 @@ jobs:
           cd artifacts
           # Linux - 如果 artifact 是目录则压缩
           if [ -d "three-player-poker-linux" ]; then
-            cd three-player-poker-linux
-            tar -czvf ../three-player-poker-linux.tar.gz *
-            cd ..
+            tar -czvf three-player-poker-linux.tar.gz -C three-player-poker-linux .
           fi
           # macOS - 优先使用 dmg，如果没有则使用 tar.gz
-          if [ -f "three-player-poker-macos.dmg" ]; then
-            echo "Using macOS dmg file"
-          elif [ -d "three-player-poker-macos" ]; then
-            cd three-player-poker-macos
-            tar -czvf ../three-player-poker-macos.tar.gz *
-            cd ..
+          if [ ! -f "three-player-poker-macos.dmg" ] && [ -d "three-player-poker-macos" ]; then
+            tar -czvf three-player-poker-macos.tar.gz -C three-player-poker-macos .
           fi
           # Windows - artifact 已经是 zip 文件，无需重新压缩
           if [ -d "three-player-poker-windows" ]; then
-            cd three-player-poker-windows
-            # 使用 zip 命令代替 powershell
-            zip -r ../three-player-poker-windows.zip *
-            cd ..
+            zip -r three-player-poker-windows.zip three-player-poker-windows/*
           fi
-          cd ..
+          # 列出所有生成的文件
+          echo "Release files:"
+          ls -la *.tar.gz *.zip *.dmg 2>/dev/null || echo "No release files found"
 
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz *.zip *.dmg 2>/dev/null || true > checksums.txt
-          cd ..
+          # 生成存在的文件的 checksums
+          > checksums.txt
+          for file in *.tar.gz *.zip *.dmg; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" >> checksums.txt
+            fi
+          done
+          echo "Checksums:"
+          cat checksums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -160,6 +160,7 @@ jobs:
             artifacts/three-player-poker-macos.dmg
             artifacts/three-player-poker-windows.zip
             artifacts/checksums.txt
+          file_failure_ignore: true
           generate_release_notes: true
           draft: false
           prerelease: false
