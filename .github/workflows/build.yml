@@ -1,0 +1,130 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: three-player-poker-linux
+            output_name: three-player-poker-linux.tar.gz
+          - os: windows-latest
+            artifact_name: three-player-poker-windows
+            output_name: three-player-poker-windows.zip
+          - os: macos-latest
+            artifact_name: three-player-poker-macos
+            output_name: three-player-poker-macos.tar.gz
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onefile --name three-player-poker --windowed src/main.py
+        shell: bash
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p dist_release
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cp dist/three-player-poker.exe dist_release/
+          else
+            cp dist/three-player-poker dist_release/
+          fi
+        shell: bash
+
+      - name: Create archive
+        run: |
+          cd dist_release
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            tar -czvf ../${{ matrix.output_name }} *
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            tar -czvf ../${{ matrix.output_name }} *
+          fi
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.os == 'windows-latest' && 'dist_release/three-player-poker.exe' || 'dist_release/three-player-poker' }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          cd artifacts
+          # Linux
+          if [ -d "three-player-poker-linux" ]; then
+            cd three-player-poker-linux
+            tar -czvf ../three-player-poker-linux.tar.gz *
+            cd ..
+          fi
+          # macOS
+          if [ -d "three-player-poker-macos" ]; then
+            cd three-player-poker-macos
+            tar -czvf ../three-player-poker-macos.tar.gz *
+            cd ..
+          fi
+          # Windows
+          if [ -d "three-player-poker-windows" ]; then
+            cd three-player-poker-windows
+            zip -r ../three-player-poker-windows.zip *
+            cd ..
+          fi
+          cd ..
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum *.tar.gz *.zip 2>/dev/null || true > checksums.txt
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/three-player-poker-linux.tar.gz
+            artifacts/three-player-poker-macos.tar.gz
+            artifacts/three-player-poker-windows.zip
+            artifacts/checksums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
