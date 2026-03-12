@@ -107,8 +107,9 @@ def analyze_hand(cards: List[Card]) -> HandResult:
             elif count == 1:
                 single_rank = rank
         if triple_rank and single_rank:
-            return HandResult(HandType.TRIPLE_WITH_ONE, triple_rank,
-                            [Card(single_rank) for _ in range(1)])
+            # Find the actual card with the single rank from input
+            single_card = next(c for c in cards if c.rank == single_rank)
+            return HandResult(HandType.TRIPLE_WITH_ONE, triple_rank, [single_card])
 
     # 三带二（对子）
     if n == 5 and len(rank_counts) == 2:
@@ -121,8 +122,10 @@ def analyze_hand(cards: List[Card]) -> HandResult:
             elif count == 2:
                 pair_rank = rank
         if triple_rank and pair_rank:
-            return HandResult(HandType.TRIPLE_WITH_PAIR, triple_rank,
-                            [Card(pair_rank) for _ in range(2)])
+            # Find the actual cards from input
+            triple_cards = [c for c in cards if c.rank == triple_rank][:3]
+            pair_cards = [c for c in cards if c.rank == pair_rank][:2]
+            return HandResult(HandType.TRIPLE_WITH_PAIR, triple_rank, triple_cards + pair_cards)
 
     # 炸弹
     if n == 4 and len(rank_counts) == 1:
