@@ -121,6 +121,9 @@ three-player-poker/
 - [x] Bug 修复
 - [x] GitHub Actions 配置 (支持 Ubuntu/Windows/macOS)
 
+### v0.5.1 - Bug 修复
+- [x] 修复 Windows 版本启动报错 AttributeError: module 'pygame' has no attribute 'clock'
+
 ### v1.0.0 - 正式发布
 - [ ] 多平台构建
 - [ ] 正式发布
