@@ -135,6 +135,9 @@ three-player-poker/
 - [x] 多平台构建
 - [x] 正式发布
 
+### v1.0.5 - GitHub Actions 修复
+- [x] 修复 release  job 中 powershell 命令不可用问题 (ubuntu-latest 上使用 zip 命令)
+
 ## 发布流程
 1. 开发完成后运行测试
 2. 更新版本号

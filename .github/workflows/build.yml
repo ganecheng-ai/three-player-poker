@@ -122,7 +122,7 @@ jobs:
       - name: Prepare release files
         run: |
           cd artifacts
-          # Linux
+          # Linux - 如果 artifact 是目录则压缩
           if [ -d "three-player-poker-linux" ]; then
             cd three-player-poker-linux
             tar -czvf ../three-player-poker-linux.tar.gz *
@@ -130,16 +130,17 @@ jobs:
           fi
           # macOS - 优先使用 dmg，如果没有则使用 tar.gz
           if [ -f "three-player-poker-macos.dmg" ]; then
-            cp three-player-poker-macos.dmg three-player-poker-macos.dmg
+            echo "Using macOS dmg file"
           elif [ -d "three-player-poker-macos" ]; then
             cd three-player-poker-macos
             tar -czvf ../three-player-poker-macos.tar.gz *
             cd ..
           fi
-          # Windows
+          # Windows - artifact 已经是 zip 文件，无需重新压缩
           if [ -d "three-player-poker-windows" ]; then
             cd three-player-poker-windows
-            powershell -Command "Compress-Archive -Path * -DestinationPath ../three-player-poker-windows.zip"
+            # 使用 zip 命令代替 powershell
+            zip -r ../three-player-poker-windows.zip *
             cd ..
           fi
           cd ..
