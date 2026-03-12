@@ -125,8 +125,8 @@ three-player-poker/
 - [x] 修复 Windows 版本启动报错 AttributeError: module 'pygame' has no attribute 'clock'
 
 ### v1.0.0 - 正式发布
-- [ ] 多平台构建
-- [ ] 正式发布
+- [x] 多平台构建
+- [x] 正式发布
 
 ## 发布流程
 1. 开发完成后运行测试
