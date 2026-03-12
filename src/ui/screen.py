@@ -7,15 +7,25 @@ from ..game.rules import GameRule, PlayerRole
 
 # 颜色定义
 COLOR_BACKGROUND = (15, 82, 45)  # 深绿色背景（牌桌）
+COLOR_BACKGROUND_GRADIENT_TOP = (25, 100, 55)  # 渐变顶部
+COLOR_BACKGROUND_GRADIENT_BOTTOM = (10, 60, 35)  # 渐变底部
 COLOR_CARD_BACK = (41, 128, 185)  # 卡牌背面蓝色
+COLOR_CARD_BACK_PATTERN = (52, 152, 219)  # 卡牌背面图案
 COLOR_CARD_WHITE = (255, 255, 255)  # 卡牌白色区域
 COLOR_CARD_RED = (231, 76, 60)  # 红色花色
 COLOR_CARD_BLACK = (44, 62, 80)  # 黑色花色
 COLOR_TEXT = (255, 255, 255)  # 白色文字
+COLOR_TEXT_SHADOW = (0, 0, 0)  # 文字阴影
 COLOR_GOLD = (241, 196, 15)  # 金色
+COLOR_GOLD_BRIGHT = (255, 215, 0)  # 亮金色
 COLOR_BUTTON_PRIMARY = (52, 152, 219)  # 蓝色按钮
 COLOR_BUTTON_HOVER = (41, 128, 185)  # 悬停蓝色
 COLOR_BUTTON_DISABLED = (127, 140, 141)  # 禁用灰色
+COLOR_BUTTON_SUCCESS = (46, 204, 113)  # 绿色按钮
+COLOR_BUTTON_WARNING = (243, 156, 18)  # 橙色按钮
+COLOR_LANDLORD = (241, 196, 15)  # 地主金色
+COLOR_FARMER = (52, 152, 219)  # 农民蓝色
+COLOR_SHADOW = (0, 0, 0, 100)  # 阴影色
 
 
 class GameScreen:
@@ -45,7 +55,7 @@ class GameScreen:
     def initialize(self):
         """初始化 Pygame"""
         pygame.init()
-        pygame.display.set_caption("斗地主")
+        pygame.display.set_caption("斗地主 - Three Player Poker")
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.clock = pygame.clock.Clock()
@@ -63,6 +73,9 @@ class GameScreen:
             self.font_medium = pygame.font.Font(None, 36)
             self.font_small = pygame.font.Font(None, 24)
 
+        # 创建桌面渐变效果
+        self.background_surface = self._create_gradient_background()
+
     def quit(self):
         """退出 Pygame"""
         pygame.quit()
@@ -70,7 +83,10 @@ class GameScreen:
     def clear(self):
         """清屏"""
         if self.screen:
-            self.screen.fill(COLOR_BACKGROUND)
+            if hasattr(self, 'background_surface') and self.background_surface:
+                self.screen.blit(self.background_surface, (0, 0))
+            else:
+                self.screen.fill(COLOR_BACKGROUND)
 
     def draw_card(self, card: Card, x: int, y: int,
                   face_up: bool = True, selected: bool = False) -> pygame.Rect:
@@ -92,11 +108,17 @@ class GameScreen:
         # 选中时向上偏移
         draw_y = y - 15 if selected else y
 
+        # 绘制阴影
+        shadow_rect = pygame.Rect(x + 3, draw_y + 3, self.card_width, self.card_height)
+        shadow_surface = pygame.Surface((self.card_width, self.card_height), pygame.SRCALPHA)
+        pygame.draw.rect(shadow_surface, (0, 0, 0, 80), shadow_surface.get_rect(), border_radius=8)
+        self.screen.blit(shadow_surface, (x + 3, draw_y + 3))
+
         if not face_up:
             # 画牌背
             rect = pygame.Rect(x, draw_y, self.card_width, self.card_height)
             pygame.draw.rect(self.screen, COLOR_CARD_BACK, rect, border_radius=8)
-            pygame.draw.rect(self.screen, COLOR_TEXT, rect, width=2, border_radius=8)
+            self._draw_card_back_pattern(rect)
             return rect
 
         # 画牌面
@@ -110,25 +132,39 @@ class GameScreen:
 
         # 大王小王特殊处理
         if card.is_high_joker:
-            # 大王 - 红色
+            # 大王 - 红色渐变背景
+            gradient_rect = pygame.Rect(x + 5, draw_y + 5, self.card_width - 10, self.card_height - 10)
+            pygame.draw.rect(self.screen, (255, 240, 240), gradient_rect, border_radius=5)
             text = self.font_medium.render("大王", True, COLOR_CARD_RED)
             text_rect = text.get_rect(center=(x + self.card_width // 2,
                                                y + self.card_height // 2))
             self.screen.blit(text, text_rect)
+            # 添加装饰星号
+            star_text = self.font_small.render("★", True, COLOR_GOLD)
+            self.screen.blit(star_text, (x + self.card_width // 2 - 10, draw_y + 10))
         elif card.is_low_joker:
             # 小王 - 黑色
             text = self.font_medium.render("小王", True, COLOR_CARD_BLACK)
             text_rect = text.get_rect(center=(x + self.card_width // 2,
                                                y + self.card_height // 2))
             self.screen.blit(text, text_rect)
+            # 添加装饰月亮
+            moon_text = self.font_small.render("☾", True, COLOR_CARD_BLACK)
+            self.screen.blit(moon_text, (x + self.card_width // 2 - 10, draw_y + 10))
         else:
             # 左上角显示牌面值
             rank_text = self.font_small.render(card.short_name, True, color)
             self.screen.blit(rank_text, (x + 5, draw_y + 5))
 
-            # 中间显示花色
+            # 中间显示花色（带阴影效果）
             suit_symbol = self._get_suit_symbol(card.suit)
             if suit_symbol:
+                # 阴影
+                suit_text_shadow = self.font_large.render(suit_symbol, True, (200, 200, 200))
+                suit_rect_shadow = suit_text_shadow.get_rect(center=(x + self.card_width // 2 + 1,
+                                                        y + self.card_height // 2 + 1))
+                self.screen.blit(suit_text_shadow, suit_rect_shadow)
+                # 本体
                 suit_text = self.font_large.render(suit_symbol, True, color)
                 suit_rect = suit_text.get_rect(center=(x + self.card_width // 2,
                                                         y + self.card_height // 2))
@@ -140,8 +176,12 @@ class GameScreen:
             self.screen.blit(rotated, (x + self.card_width - 25,
                                         draw_y + self.card_height - 20))
 
-        # 选中边框
+        # 选中边框（发光效果）
         if selected:
+            # 外发光
+            glow_rect = pygame.Rect(x - 2, draw_y - 2, self.card_width + 4, self.card_height + 4)
+            pygame.draw.rect(self.screen, COLOR_GOLD_BRIGHT, glow_rect, width=4, border_radius=10)
+            # 内边框
             pygame.draw.rect(self.screen, COLOR_GOLD, rect, width=3, border_radius=8)
 
         return rect
@@ -157,6 +197,37 @@ class GameScreen:
             Card.SPADES: "♠",
         }
         return symbols.get(suit, "")
+
+    def _create_gradient_background(self) -> pygame.Surface:
+        """创建渐变背景"""
+        surface = pygame.Surface((self.width, self.height))
+        for y in range(self.height):
+            ratio = y / self.height
+            r = int(COLOR_BACKGROUND_GRADIENT_TOP[0] * (1 - ratio) + COLOR_BACKGROUND_GRADIENT_BOTTOM[0] * ratio)
+            g = int(COLOR_BACKGROUND_GRADIENT_TOP[1] * (1 - ratio) + COLOR_BACKGROUND_GRADIENT_BOTTOM[1] * ratio)
+            b = int(COLOR_BACKGROUND_GRADIENT_TOP[2] * (1 - ratio) + COLOR_BACKGROUND_GRADIENT_BOTTOM[2] * ratio)
+            pygame.draw.line(surface, (r, g, b), (0, y), (self.width, y))
+        return surface
+
+    def _draw_card_back_pattern(self, rect: pygame.Rect):
+        """绘制卡牌背面图案"""
+        if not self.screen:
+            return
+        # 绘制菱形图案
+        center_x = rect.centerx
+        center_y = rect.centery
+        # 外框
+        pygame.draw.rect(self.screen, COLOR_CARD_BACK_PATTERN, rect, width=3, border_radius=8)
+        # 中心菱形
+        points = [
+            (center_x, rect.top + 15),
+            (rect.right - 15, center_y),
+            (center_x, rect.bottom - 15),
+            (rect.left + 15, center_y)
+        ]
+        pygame.draw.polygon(self.screen, COLOR_CARD_BACK_PATTERN, points)
+        # 中心圆
+        pygame.draw.circle(self.screen, COLOR_CARD_BACK_PATTERN, (center_x, center_y), 12, 2)
 
     def draw_hand(self, cards: List[Card], start_x: int, start_y: int,
                   overlap: int = 25, selectable: bool = True) -> List[pygame.Rect]:
@@ -187,28 +258,49 @@ class GameScreen:
 
         # 玩家名称
         role_text = ""
+        role_color = COLOR_TEXT
         if role == PlayerRole.LANDLORD:
             role_text = "（地主）"
+            role_color = COLOR_LANDLORD
         elif role == PlayerRole.FARMER:
             role_text = "（农民）"
+            role_color = COLOR_FARMER
 
-        name_text = self.font_medium.render(f"{name}{role_text}", True, COLOR_TEXT)
+        # 绘制名称（带阴影）
+        name_with_role = f"{name}{role_text}"
+        text_shadow = self.font_medium.render(name_with_role, True, COLOR_TEXT_SHADOW)
+        self.screen.blit(text_shadow, (x + 1, y + 1))
+
+        name_text = self.font_medium.render(name_with_role, True, role_color)
         self.screen.blit(name_text, (x, y))
 
-        # 剩余牌数
+        # 剩余牌数（带背景框）
         card_text = self.font_small.render(f"剩余：{card_count} 张", True, COLOR_TEXT)
-        self.screen.blit(card_text, (x, y + 30))
+        # 绘制半透明背景
+        text_width = card_text.get_width() + 10
+        text_height = card_text.get_height() + 4
+        bg_rect = pygame.Rect(x, y + 28, text_width, text_height)
+        pygame.draw.rect(self.screen, (0, 0, 0, 128), bg_rect, border_radius=4)
+        self.screen.blit(card_text, (x + 5, y + 30))
 
     def draw_bottom_cards(self, cards: List[Card], x: int, y: int):
         """绘制底牌"""
         if not self.screen:
             return
 
-        label = self.font_small.render("底牌:", True, COLOR_TEXT)
+        # 绘制标签（带背景）
+        label = self.font_medium.render("底牌:", True, COLOR_GOLD)
+        label_bg_rect = pygame.Rect(x - 5, y - 5, label.get_width() + 10, label.get_height() + 10)
+        pygame.draw.rect(self.screen, (0, 0, 0, 128), label_bg_rect, border_radius=5)
         self.screen.blit(label, (x, y))
 
+        # 绘制底牌（带边框）
         for i, card in enumerate(cards):
-            self.draw_card(card, x + 60 + i * (self.card_width - 40), y, face_up=True)
+            card_x = x + 60 + i * (self.card_width - 40)
+            # 绘制底牌外框
+            card_rect = pygame.Rect(card_x - 2, y - 2, self.card_width + 4, self.card_height + 4)
+            pygame.draw.rect(self.screen, COLOR_GOLD, card_rect, width=2, border_radius=10)
+            self.draw_card(card, card_x, y, face_up=True)
 
     def create_button(self, name: str, text: str, x: int, y: int,
                       width: int = 120, height: int = 40,
@@ -247,11 +339,26 @@ class GameScreen:
         else:
             color = COLOR_BUTTON_PRIMARY
 
+        # 绘制按钮阴影
+        shadow_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width, rect.height)
+        shadow_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(shadow_surface, (0, 0, 0, 80), shadow_surface.get_rect(), border_radius=8)
+        self.screen.blit(shadow_surface, (rect.x + 2, rect.y + 2))
+
         # 绘制按钮
         pygame.draw.rect(self.screen, color, rect, border_radius=8)
         pygame.draw.rect(self.screen, COLOR_TEXT, rect, width=2, border_radius=8)
 
-        # 绘制文字
+        # 悬停效果 - 高亮边框
+        if hovered and enabled:
+            hover_rect = pygame.Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4)
+            pygame.draw.rect(self.screen, COLOR_GOLD, hover_rect, width=2, border_radius=10)
+
+        # 绘制文字（带阴影）
+        text_surface_shadow = self.font_medium.render(text, True, COLOR_TEXT_SHADOW)
+        text_rect_shadow = text_surface_shadow.get_rect(center=(rect.centerx + 1, rect.centery + 1))
+        self.screen.blit(text_surface_shadow, text_rect_shadow)
+
         text_surface = self.font_medium.render(text, True, COLOR_TEXT)
         text_rect = text_surface.get_rect(center=rect.center)
         self.screen.blit(text_surface, text_rect)
@@ -271,6 +378,11 @@ class GameScreen:
         else:
             font = self.font_medium
 
+        # 绘制阴影
+        text_shadow = font.render(message, True, COLOR_TEXT_SHADOW)
+        self.screen.blit(text_shadow, (x + 1, y + 1))
+
+        # 绘制文字
         text = font.render(message, True, color)
         self.screen.blit(text, (x, y))
 
