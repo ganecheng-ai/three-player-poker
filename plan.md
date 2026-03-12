@@ -138,6 +138,11 @@ three-player-poker/
 ### v1.0.5 - GitHub Actions 修复
 - [x] 修复 release  job 中 powershell 命令不可用问题 (ubuntu-latest 上使用 zip 命令)
 
+### v1.0.6 - Bug 修复
+- [x] 修复游戏重新开始发牌错误 (rules.py: start_game 中重置牌堆)
+- [x] 修复界面上中文乱码问题 (screen.py: 使用文泉驿正黑字体)
+- [x] 修复 issue #3: v1.0.5 进入游戏后无法操作，且界面上的中文乱码
+
 ## 发布流程
 1. 开发完成后运行测试
 2. 更新版本号
