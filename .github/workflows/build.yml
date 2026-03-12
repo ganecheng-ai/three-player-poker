@@ -63,6 +63,8 @@ jobs:
             tar -czvf ../${{ matrix.output_name }} *
           elif [ "$RUNNER_OS" == "macOS" ]; then
             tar -czvf ../${{ matrix.output_name }} *
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            7z a -tzip ../${{ matrix.output_name }} *
           fi
         shell: bash
 
@@ -70,8 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            ${{ matrix.os == 'windows-latest' && 'dist_release/three-player-poker.exe' || 'dist_release/three-player-poker' }}
+          path: ${{ matrix.output_name }}
 
   release:
     name: Create Release
