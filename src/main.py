@@ -185,7 +185,7 @@ class DouDizhuGame:
             if current_player is None:
                 return
 
-            if self.rule.phase == GamePhase.CALL_LORDLORD:
+            if self.rule.phase == GamePhase.CALL_LANDLORD:
                 # AI 叫地主
                 ai = self.players.get(current_player)
                 if isinstance(ai, AIPlayer):
@@ -301,7 +301,7 @@ class DouDizhuGame:
                                      self.screen.height // 2 - 50)
 
         # 绘制叫地主按钮
-        if self.rule.phase == GamePhase.CALL_LORDLORD and \
+        if self.rule.phase == GamePhase.CALL_LANDLORD and \
            self.rule.get_current_player() == 0 and 0 not in self.rule.call_scores:
             self._draw_call_buttons()
 

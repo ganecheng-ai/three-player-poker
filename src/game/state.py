@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Any
 from enum import IntEnum
 import json
 
-from .deck import Card, Deck, sort_cards
+from .deck import Card, Deck, Suit, sort_cards
 from .cards import HandType, analyze_hand, can_play
 from .rules import GameRule, GamePhase, PlayerRole
 
@@ -115,6 +115,3 @@ class GameState:
         """从 JSON 字符串创建"""
         return cls.from_dict(json.loads(json_str))
 
-
-# 导入 Suit 用于反序列化
-from .deck import Suit

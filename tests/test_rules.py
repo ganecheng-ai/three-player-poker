@@ -86,14 +86,29 @@ class TestGameRule(unittest.TestCase):
         self.rule.start_game([0, 1, 2])
         self.rule.call_landlord(0, 3)
 
-        # 尝试出两张不同的牌（无效牌型）
+        # 尝试出两张不同点数的牌（无效牌型）
         hand = self.rule.get_player_hand(0)
-        invalid_cards = [hand[0], hand[1]]
 
-        # 如果这两张牌不是对子，应该出牌失败
-        if hand[0].rank != hand[1].rank:
-            result = self.rule.play_cards(0, invalid_cards)
-            self.assertFalse(result)
+        # 找两张不同点数且不是王炸的牌
+        # 注意：手牌按 rank 降序排序，所以大王 (17) 在小王 (16) 前面
+        card1 = None
+        card2 = None
+        for i in range(len(hand) - 1):
+            if hand[i].rank != hand[i + 1].rank:
+                # 排除王炸组合（17=大王，16=小王，排序后 17 在前）
+                is_rocket = (hand[i].rank == 17 and hand[i + 1].rank == 16)
+                if not is_rocket:
+                    card1 = hand[i]
+                    card2 = hand[i + 1]
+                    break
+
+        # 如果手牌中没有合适的两张牌，则跳过测试
+        if card1 is None or card2 is None:
+            self.skipTest("手牌中没有两张不同点数且不是王炸的牌")
+
+        invalid_cards = [card1, card2]
+        result = self.rule.play_cards(0, invalid_cards)
+        self.assertFalse(result, "出两张不同点数且不是王炸的牌应该是无效的")
 
     def test_pass_turn(self):
         """测试过牌"""
