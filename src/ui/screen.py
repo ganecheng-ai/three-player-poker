@@ -58,7 +58,7 @@ class GameScreen:
         pygame.display.set_caption("斗地主 - Three Player Poker")
 
         self.screen = pygame.display.set_mode((self.width, self.height))
-        self.clock = pygame.clock.Clock()
+        self.clock = pygame.time.Clock()
 
         # 初始化字体
         pygame.font.init()
