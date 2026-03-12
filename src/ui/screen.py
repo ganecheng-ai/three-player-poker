@@ -216,6 +216,8 @@ class GameScreen:
         """创建按钮"""
         rect = pygame.Rect(x, y, width, height)
         self.buttons[name] = rect
+        self.button_text = getattr(self, 'button_text', {})
+        self.button_text[name] = text
         if callback:
             self.button_callbacks[name] = callback
         return rect
@@ -231,7 +233,7 @@ class GameScreen:
             return False
 
         rect = self.buttons[name]
-        text = name
+        text = self.button_text.get(name, name) if hasattr(self, 'button_text') else name
 
         # 检查鼠标位置
         mouse_pos = pygame.mouse.get_pos()

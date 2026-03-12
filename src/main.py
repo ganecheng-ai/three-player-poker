@@ -102,11 +102,11 @@ class DouDizhuGame:
                 self.message = "你选择了过牌"
             elif button_name == "Call1" and self.rule.phase == GamePhase.CALL_LANDLORD:
                 self.handle_call_score(1)
-            elif button_name == "Call2" and self.rule.phase == GamePhase.CALL_LORDLORD:
+            elif button_name == "Call2" and self.rule.phase == GamePhase.CALL_LANDLORD:
                 self.handle_call_score(2)
-            elif button_name == "Call3" and self.rule.phase == GamePhase.CALL_LORDLORD:
+            elif button_name == "Call3" and self.rule.phase == GamePhase.CALL_LANDLORD:
                 self.handle_call_score(3)
-            elif button_name == "NoCall" and self.rule.phase == GamePhase.CALL_LORDLORD:
+            elif button_name == "NoCall" and self.rule.phase == GamePhase.CALL_LANDLORD:
                 self.handle_call_score(0)
             return
 
