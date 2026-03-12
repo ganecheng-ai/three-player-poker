@@ -131,11 +131,34 @@ class AIPlayer:
         return self._play_to_beat(hand, last_hand)
 
     def _play_free(self, hand: List[Card]) -> List[Card]:
-        """自由出牌策略 - 出最小的有效牌型"""
+        """自由出牌策略 - 智能选择出牌"""
         rank_groups = self._group_cards_by_rank(hand)
+        ranks = sorted(rank_groups.keys())
 
-        # 优先出单张（最小）
-        for rank in sorted(rank_groups.keys()):
+        # 策略：优先出能减少手牌数量的牌型
+        # 1. 先尝试出三带一或三带二
+        for rank in ranks:
+            if len(rank_groups.get(rank, [])) >= 3:
+                # 找一个最小的单牌或对子来带
+                other_ranks = [r for r in ranks if r != rank]
+                if other_ranks:
+                    # 三带一
+                    other_rank = min(other_ranks)
+                    if rank_groups[other_rank]:
+                        return rank_groups[rank][:3] + [rank_groups[other_rank][0]]
+                # 找一个最小的对子
+                pair_ranks = [r for r in other_ranks if len(rank_groups.get(r, [])) >= 2]
+                if pair_ranks:
+                    pair_rank = min(pair_ranks)
+                    return rank_groups[rank][:3] + rank_groups[pair_rank][:2]
+
+        # 2. 尝试出对子（优先出小的对子）
+        for rank in ranks:
+            if len(rank_groups.get(rank, [])) >= 2:
+                return rank_groups[rank][:2]
+
+        # 3. 出单张（最小）
+        for rank in ranks:
             if rank_groups[rank]:
                 return [rank_groups[rank][0]]
 
@@ -149,22 +172,38 @@ class AIPlayer:
 
         rank_groups = self._group_cards_by_rank(hand)
 
-        # 王炸可以直接出（如果有）
-        if 16 in rank_groups and 17 in rank_groups:
-            if last_result.hand_type != HandType.ROCKET:
-                return [Card(16, None), Card(17, None)]
-
-        # 炸弹策略
-        if last_result.hand_type != HandType.BOMB and last_result.hand_type != HandType.ROCKET:
+        # 处理炸弹管炸弹的情况
+        if last_result.hand_type == HandType.BOMB:
             bomb = self._find_smallest_bomb(rank_groups, last_result.main_rank)
             if bomb:
-                # 如果有更小的牌型可以管，优先用普通牌型
-                normal_beat = self._find_normal_beat(hand, last_hand, rank_groups, last_result)
-                if normal_beat or self._should_use_bomb(last_hand):
-                    return bomb
+                return bomb
+            # 没有更大的炸弹，尝试用王炸
+            if 16 in rank_groups and 17 in rank_groups:
+                return [Card(16, None), Card(17, None)]
+            return None  # 管不上
 
-        # 普通牌型应对
-        return self._find_normal_beat(hand, last_hand, rank_groups, last_result)
+        # 处理王炸 - 无法管
+        if last_result.hand_type == HandType.ROCKET:
+            return None
+
+        # 王炸策略 - 只在必要时使用
+        has_rocket = 16 in rank_groups and 17 in rank_groups
+
+        # 先尝试用普通牌型管
+        normal_beat = self._find_normal_beat(hand, last_hand, rank_groups, last_result)
+        if normal_beat:
+            return normal_beat
+
+        # 没有普通牌型可以管，考虑是否用炸弹
+        if self._should_use_bomb(last_hand):
+            bomb = self._find_smallest_bomb(rank_groups, 0)
+            if bomb:
+                return bomb
+            # 没有炸弹，考虑用王炸
+            if has_rocket:
+                return [Card(16, None), Card(17, None)]
+
+        return None  # 选择过牌
 
     def _find_normal_beat(self, hand: List[Card], last_hand: List[Card],
                           rank_groups: Dict[int, List[Card]],
@@ -223,10 +262,26 @@ class AIPlayer:
         return None
 
     def _should_use_bomb(self, last_hand: List[Card]) -> bool:
-        """判断是否应该用炸弹（简化策略）"""
-        # 如果对手的牌比较大，可能值得用炸弹
+        """判断是否应该用炸弹"""
         result = analyze_hand(last_hand)
-        return result.main_rank >= 12  # K 以上考虑用炸弹
+
+        # 王炸不需要用炸弹管（已经在 _play_to_beat 中处理）
+        if result.hand_type == HandType.ROCKET:
+            return False
+
+        # 炸弹需要用更大的炸弹管
+        if result.hand_type == HandType.BOMB:
+            return True
+
+        # 对手牌很大（2或更大），值得用炸弹
+        if result.main_rank >= 15:  # 2 或王
+            return True
+
+        # 对手牌是较大的牌（K、A），可以考虑用炸弹
+        if result.main_rank >= 13:
+            return True
+
+        return False
 
     def _group_cards_by_rank(self, hand: List[Card]) -> Dict[int, List[Card]]:
         """按牌面值分组"""
