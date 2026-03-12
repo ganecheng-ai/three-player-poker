@@ -1,7 +1,7 @@
 """屏幕管理和渲染"""
 import pygame
 from typing import Optional, Tuple, List, Dict, Any
-from ..game.deck import Card
+from ..game.deck import Card, Suit
 from ..game.rules import GameRule, PlayerRole
 
 
@@ -127,7 +127,7 @@ class GameScreen:
         pygame.draw.rect(self.screen, COLOR_CARD_BLACK, rect, width=2, border_radius=8)
 
         # 确定花色颜色
-        is_red = card.suit in [Card.HEARTS, Card.DIAMONDS] if card.suit else False
+        is_red = card.suit in [Suit.HEARTS, Suit.DIAMONDS] if card.suit else False
         color = COLOR_CARD_RED if is_red else COLOR_CARD_BLACK
 
         # 大王小王特殊处理
@@ -191,10 +191,10 @@ class GameScreen:
         if suit is None:
             return ""
         symbols = {
-            Card.DIAMONDS: "♦",
-            Card.CLUBS: "♣",
-            Card.HEARTS: "♥",
-            Card.SPADES: "♠",
+            Suit.DIAMONDS: "♦",
+            Suit.CLUBS: "♣",
+            Suit.HEARTS: "♥",
+            Suit.SPADES: "♠",
         }
         return symbols.get(suit, "")
 
