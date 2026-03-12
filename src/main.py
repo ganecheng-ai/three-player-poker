@@ -2,7 +2,7 @@
 import sys
 import pygame
 
-from src.game.deck import Card, Deck, sort_cards
+from src.game.deck import Card, Deck, Suit, sort_cards
 from src.game.rules import GameRule, GamePhase, PlayerRole
 from src.game.cards import analyze_hand, can_play
 from src.player.human import HumanPlayer
@@ -263,7 +263,7 @@ class DouDizhuGame:
         self.screen.draw_player_info(1, "电脑 1", role1, len(hand1), 50, 100)
         # 绘制电脑 1 的牌背
         for i in range(min(len(hand1), 17)):
-            self.screen.draw_card(Card(3, Card.SPADES), 50 + i * 15, 150, face_up=False)
+            self.screen.draw_card(Card(3, Suit.SPADES), 50 + i * 15, 150, face_up=False)
 
         # 电脑 2（右侧）
         hand2 = self.rule.get_player_hand(2)
@@ -272,7 +272,7 @@ class DouDizhuGame:
                                      self.screen.width - 150, 100)
         # 绘制电脑 2 的牌背
         for i in range(min(len(hand2), 17)):
-            self.screen.draw_card(Card(3, Card.SPADES),
+            self.screen.draw_card(Card(3, Suit.SPADES),
                                   self.screen.width - 100 - i * 15, 150, face_up=False)
 
         # 绘制玩家手牌（底部）
