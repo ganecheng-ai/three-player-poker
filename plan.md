@@ -127,6 +127,10 @@ three-player-poker/
 ### v0.5.2 - Bug 修复
 - [x] 修复 Card.SPADES 属性错误 (issue #2)
 
+### v0.5.3 - Bug 修复
+- [x] 修复 screen.py 中 Card.SPADES 等属性引用错误
+- [x] 完整修复 issue #2 中所有 Card.SPADES 引用问题
+
 ### v1.0.0 - 正式发布
 - [x] 多平台构建
 - [x] 正式发布
