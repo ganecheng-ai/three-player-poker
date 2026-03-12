@@ -154,6 +154,13 @@ three-player-poker/
 - [x] 改进 AI 自由出牌策略 (ai.py: 优先出三带一/三带二/对子，最后才出单张)
 - [x] 优化炸弹使用策略 (ai.py: 更智能地判断是否应该使用炸弹)
 
+### v1.0.9 - AI 复杂牌型支持
+- [x] 添加顺子牌型识别和出牌策略 (ai.py: _try_straight, _find_straight_beat)
+- [x] 添加连对牌型识别和出牌策略 (ai.py: _try_double_straight, _find_double_straight_beat)
+- [x] 添加飞机牌型识别和出牌策略 (ai.py: _try_airplane, _find_airplane_beat)
+- [x] 添加飞机带单/带对牌型识别和出牌策略 (ai.py: _try_airplane_with_single/pair)
+- [x] 优化自由出牌策略，优先出能快速减少手牌数的牌型
+
 ## 发布流程
 1. 开发完成后运行测试
 2. 更新版本号

@@ -136,7 +136,31 @@ class AIPlayer:
         ranks = sorted(rank_groups.keys())
 
         # 策略：优先出能减少手牌数量的牌型
-        # 1. 先尝试出三带一或三带二
+        # 1. 尝试出飞机带对或飞机带单
+        airplane_with_pair = self._try_airplane_with_pair(rank_groups)
+        if airplane_with_pair:
+            return airplane_with_pair
+
+        airplane_with_single = self._try_airplane_with_single(rank_groups)
+        if airplane_with_single:
+            return airplane_with_single
+
+        # 2. 尝试出连对
+        double_straight = self._try_double_straight(rank_groups)
+        if double_straight:
+            return double_straight
+
+        # 3. 尝试出顺子
+        straight = self._try_straight(rank_groups)
+        if straight:
+            return straight
+
+        # 4. 尝试出飞机（不带）
+        airplane = self._try_airplane(rank_groups)
+        if airplane:
+            return airplane
+
+        # 5. 先尝试出三带一或三带二
         for rank in ranks:
             if len(rank_groups.get(rank, [])) >= 3:
                 # 找一个最小的单牌或对子来带
@@ -152,17 +176,150 @@ class AIPlayer:
                     pair_rank = min(pair_ranks)
                     return rank_groups[rank][:3] + rank_groups[pair_rank][:2]
 
-        # 2. 尝试出对子（优先出小的对子）
+        # 6. 尝试出对子（优先出小的对子）
         for rank in ranks:
             if len(rank_groups.get(rank, [])) >= 2:
                 return rank_groups[rank][:2]
 
-        # 3. 出单张（最小）
+        # 7. 出单张（最小）
         for rank in ranks:
             if rank_groups[rank]:
                 return [rank_groups[rank][0]]
 
         return hand  # 不应该到这里
+
+    def _try_straight(self, rank_groups: Dict[int, List[Card]]) -> Optional[List[Card]]:
+        """尝试出顺子"""
+        available_ranks = sorted([r for r in rank_groups.keys() if r < 15 and rank_groups[r]])
+        if len(available_ranks) < 5:
+            return None
+
+        # 找最长的顺子
+        for length in range(min(12, len(available_ranks)), 4, -1):  # 从长到短尝试
+            for i in range(len(available_ranks) - length + 1):
+                start_rank = available_ranks[i]
+                if start_rank + length - 1 >= 15:
+                    continue
+                # 检查是否连续
+                valid = True
+                cards = []
+                for r in range(start_rank, start_rank + length):
+                    if r not in rank_groups:
+                        valid = False
+                        break
+                    cards.append(rank_groups[r][0])
+                if valid:
+                    return cards
+        return None
+
+    def _try_double_straight(self, rank_groups: Dict[int, List[Card]]) -> Optional[List[Card]]:
+        """尝试出连对"""
+        pair_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 2])
+        if len(pair_ranks) < 3:
+            return None
+
+        # 找最长的连对
+        for length in range(min(10, len(pair_ranks)), 2, -1):
+            for i in range(len(pair_ranks) - length + 1):
+                start_rank = pair_ranks[i]
+                if start_rank + length - 1 >= 15:
+                    continue
+                valid = True
+                cards = []
+                for r in range(start_rank, start_rank + length):
+                    if r not in rank_groups or len(rank_groups[r]) < 2:
+                        valid = False
+                        break
+                    cards.extend(rank_groups[r][:2])
+                if valid:
+                    return cards
+        return None
+
+    def _try_airplane(self, rank_groups: Dict[int, List[Card]]) -> Optional[List[Card]]:
+        """尝试出飞机（不带）"""
+        triple_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 3])
+        if len(triple_ranks) < 2:
+            return None
+
+        # 找最长的飞机
+        for length in range(min(6, len(triple_ranks)), 1, -1):
+            for i in range(len(triple_ranks) - length + 1):
+                start_rank = triple_ranks[i]
+                if start_rank + length - 1 >= 15:
+                    continue
+                valid = True
+                cards = []
+                for r in range(start_rank, start_rank + length):
+                    if r not in rank_groups or len(rank_groups[r]) < 3:
+                        valid = False
+                        break
+                    cards.extend(rank_groups[r][:3])
+                if valid:
+                    return cards
+        return None
+
+    def _try_airplane_with_single(self, rank_groups: Dict[int, List[Card]]) -> Optional[List[Card]]:
+        """尝试出飞机带单"""
+        triple_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 3])
+        if len(triple_ranks) < 2:
+            return None
+
+        # 找连续的三张
+        for length in range(min(5, len(triple_ranks)), 1, -1):
+            for i in range(len(triple_ranks) - length + 1):
+                start_rank = triple_ranks[i]
+                if start_rank + length - 1 >= 15:
+                    continue
+
+                # 检查是否连续
+                airplane_ranks = list(range(start_rank, start_rank + length))
+                valid = all(r in rank_groups and len(rank_groups[r]) >= 3 for r in airplane_ranks)
+
+                if not valid:
+                    continue
+
+                # 找带的单牌
+                single_ranks = [r for r in rank_groups.keys() if r not in airplane_ranks and rank_groups[r]]
+                if len(single_ranks) >= length:
+                    airplane_cards = []
+                    for r in airplane_ranks:
+                        airplane_cards.extend(rank_groups[r][:3])
+                    for r in single_ranks[:length]:
+                        airplane_cards.append(rank_groups[r][0])
+                    return airplane_cards
+        return None
+
+    def _try_airplane_with_pair(self, rank_groups: Dict[int, List[Card]]) -> Optional[List[Card]]:
+        """尝试出飞机带对"""
+        triple_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 3])
+        pair_ranks = [r for r in rank_groups.keys() if len(rank_groups.get(r, [])) >= 2]
+
+        if len(triple_ranks) < 2:
+            return None
+
+        # 找连续的三张
+        for length in range(min(4, len(triple_ranks)), 1, -1):
+            for i in range(len(triple_ranks) - length + 1):
+                start_rank = triple_ranks[i]
+                if start_rank + length - 1 >= 15:
+                    continue
+
+                airplane_ranks = list(range(start_rank, start_rank + length))
+                valid = all(r in rank_groups and len(rank_groups[r]) >= 3 for r in airplane_ranks)
+
+                if not valid:
+                    continue
+
+                # 找带的对子（不能和飞机重复）
+                available_pair_ranks = [r for r in pair_ranks if r not in airplane_ranks]
+                if len(available_pair_ranks) >= length:
+                    airplane_cards = []
+                    for r in airplane_ranks:
+                        airplane_cards.extend(rank_groups[r][:3])
+                    for r in available_pair_ranks[:length]:
+                        airplane_cards.extend(rank_groups[r][:2])
+                    return airplane_cards
+        return None
 
     def _play_to_beat(self, hand: List[Card], last_hand: List[Card]) -> Optional[List[Card]]:
         """管牌策略 - 尝试用最小的牌管上"""
@@ -248,8 +405,35 @@ class AIPlayer:
                         pair_rank = min(pair_ranks)
                         return rank_groups[rank][:3] + rank_groups[pair_rank][:2]
 
-        # 顺子、连对、飞机等复杂牌型简化处理
-        # 这里可以实现更复杂的逻辑
+        # 顺子
+        if last_result.hand_type == HandType.STRAIGHT:
+            straight_beat = self._find_straight_beat(rank_groups, last_result.main_rank, len(last_hand))
+            if straight_beat:
+                return straight_beat
+
+        # 连对
+        if last_result.hand_type == HandType.DOUBLE_STRAIGHT:
+            double_straight_beat = self._find_double_straight_beat(rank_groups, last_result.main_rank, len(last_hand) // 2)
+            if double_straight_beat:
+                return double_straight_beat
+
+        # 飞机（不带）
+        if last_result.hand_type == HandType.AIRPLANE:
+            airplane_beat = self._find_airplane_beat(rank_groups, last_result.main_rank, len(last_hand) // 3)
+            if airplane_beat:
+                return airplane_beat
+
+        # 飞机带单
+        if last_result.hand_type == HandType.AIRPLANE_WITH_SINGLE:
+            airplane_beat = self._find_airplane_with_single_beat(hand, rank_groups, last_result.main_rank, len(last_hand) // 4)
+            if airplane_beat:
+                return airplane_beat
+
+        # 飞机带对
+        if last_result.hand_type == HandType.AIRPLANE_WITH_PAIR:
+            airplane_beat = self._find_airplane_with_pair_beat(hand, rank_groups, last_result.main_rank, len(last_hand) // 5)
+            if airplane_beat:
+                return airplane_beat
 
         return None
 
@@ -282,6 +466,112 @@ class AIPlayer:
             return True
 
         return False
+
+    def _find_straight_beat(self, rank_groups: Dict[int, List[Card]],
+                              beat_rank: int, length: int) -> Optional[List[Card]]:
+        """寻找能管上的顺子"""
+        # 找到连续的牌，长度为 length，最大牌大于 beat_rank
+        available_ranks = sorted([r for r in rank_groups.keys() if r < 15 and rank_groups[r]])  # 不含2和王
+        for start_rank in range(beat_rank + 1, 15):  # 从 beat_rank+1 开始尝试
+            # 检查是否有从 start_rank 开始的 length 张连续牌
+            if start_rank + length - 1 >= 15:  # 超出范围
+                continue
+            valid = True
+            cards = []
+            for r in range(start_rank, start_rank + length):
+                if r not in rank_groups or not rank_groups[r]:
+                    valid = False
+                    break
+                cards.append(rank_groups[r][0])
+            if valid:
+                return cards
+        return None
+
+    def _find_double_straight_beat(self, rank_groups: Dict[int, List[Card]],
+                                   beat_rank: int, pair_count: int) -> Optional[List[Card]]:
+        """寻找能管上的连对"""
+        available_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 2])
+        for start_rank in range(beat_rank + 1, 15):  # 从 beat_rank+1 开始尝试
+            if start_rank + pair_count - 1 >= 15:
+                continue
+            valid = True
+            cards = []
+            for r in range(start_rank, start_rank + pair_count):
+                if r not in rank_groups or len(rank_groups[r]) < 2:
+                    valid = False
+                    break
+                cards.extend(rank_groups[r][:2])
+            if valid:
+                return cards
+        return None
+
+    def _find_airplane_beat(self, rank_groups: Dict[int, List[Card]],
+                            beat_rank: int, triple_count: int) -> Optional[List[Card]]:
+        """寻找能管上的飞机（不带）"""
+        available_ranks = sorted([r for r in rank_groups.keys() if r < 15 and len(rank_groups.get(r, [])) >= 3])
+        for start_rank in range(beat_rank + 1, 15):
+            if start_rank + triple_count - 1 >= 15:
+                continue
+            valid = True
+            cards = []
+            for r in range(start_rank, start_rank + triple_count):
+                if r not in rank_groups or len(rank_groups[r]) < 3:
+                    valid = False
+                    break
+                cards.extend(rank_groups[r][:3])
+            if valid:
+                return cards
+        return None
+
+    def _find_airplane_with_single_beat(self, hand: List[Card], rank_groups: Dict[int, List[Card]],
+                                        beat_rank: int, triple_count: int) -> Optional[List[Card]]:
+        """寻找能管上的飞机带单"""
+        # 先找飞机主体
+        airplane = self._find_airplane_beat(rank_groups, beat_rank, triple_count)
+        if not airplane:
+            return None
+
+        # 找带的单牌
+        airplane_ranks = set()
+        for i in range(0, len(airplane), 3):
+            airplane_ranks.add(airplane[i].rank)
+
+        single_cards = []
+        for rank, cards in rank_groups.items():
+            if rank not in airplane_ranks and cards:
+                single_cards.append(cards[0])
+                if len(single_cards) == triple_count:
+                    break
+
+        if len(single_cards) < triple_count:
+            return None
+
+        return airplane + single_cards
+
+    def _find_airplane_with_pair_beat(self, hand: List[Card], rank_groups: Dict[int, List[Card]],
+                                      beat_rank: int, triple_count: int) -> Optional[List[Card]]:
+        """寻找能管上的飞机带对"""
+        # 先找飞机主体
+        airplane = self._find_airplane_beat(rank_groups, beat_rank, triple_count)
+        if not airplane:
+            return None
+
+        # 找带的对子
+        airplane_ranks = set()
+        for i in range(0, len(airplane), 3):
+            airplane_ranks.add(airplane[i].rank)
+
+        pair_cards = []
+        for rank, cards in sorted(rank_groups.items()):
+            if rank not in airplane_ranks and len(cards) >= 2:
+                pair_cards.extend(cards[:2])
+                if len(pair_cards) == triple_count * 2:
+                    break
+
+        if len(pair_cards) < triple_count * 2:
+            return None
+
+        return airplane + pair_cards
 
     def _group_cards_by_rank(self, hand: List[Card]) -> Dict[int, List[Card]]:
         """按牌面值分组"""
